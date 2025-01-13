@@ -1,5 +1,10 @@
 import axios from 'axios'
+import readline from 'readline';
 
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
 
 async function displayLogsForUser(username) {
 
@@ -7,8 +12,13 @@ async function displayLogsForUser(username) {
         () => {
             console.log('Username Not Found');
     })
+
+    if (!resp) {
+        console.log('Invalid Username');
+        return;
+    }
+
     const data = resp.data;
-    console.log(data);
     
     const size = data.length;
     
@@ -40,4 +50,16 @@ async function displayLogsForUser(username) {
     return;
 }
 
-export default displayLogsForUser;
+async function askQuestion() {
+    await rl.question('\nInput the username you want to check: ', (name) => {
+                console.log("\n")
+                displayLogsForUser(name);
+                console.log('--------------------------------------------------------');
+                console.log('\n');
+                setTimeout(() => {
+                    askQuestion()
+                }, 2000)
+            });
+}
+
+export default askQuestion;
