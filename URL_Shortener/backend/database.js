@@ -13,6 +13,7 @@ const client = new MongoClient(uri, {
     }
 });
 
+
 async function inputData(db_name, collection_name, data) {
 
     try {
@@ -20,9 +21,54 @@ async function inputData(db_name, collection_name, data) {
         const db = client.db(db_name);
         const coll = db.collection(collection_name);
         const res = await coll.insertMany(data);
+        return res;
     } finally {
         await client.close();
     }
 }
 
-export {inputData};
+async function retrieveFromDB(db_name, collection_name, query) {
+    try {
+        await client.connect();
+        const db = client.db(db_name);
+        const coll = db.collection(collection_name);
+        const res = await coll.findOne(query);
+        return res;
+    } finally {
+        await client.close();
+    }
+}
+
+async function updateData(db_name, collection_name, shortCode, newUrl) {
+    try {
+        await client.connect();
+        const db = client.db(db_name);
+        const coll = db.collection(collection_name);
+
+        // Obtain Current Date and Time
+        const now = new Date();
+        const isoString = now.toISOString();
+
+
+        const res = await coll.updateOne({"shortCode":shortCode}, { $set: {"url": newUrl, "updatedAt":isoString}});
+        return res;
+    } finally {
+        await client.close();
+    }
+}
+
+async function deleteData(db_name, collection_name, shortCode) {
+    try {
+        await client.connect();
+        const db = client.db(db_name);
+        const coll = db.collection(collection_name);
+
+        const res = await coll.deleteOne({"shortCode":shortCode});
+        return res;
+    } finally {
+        await client.close();
+    }
+}
+
+
+export {inputData, retrieveFromDB, updateData, deleteData};
