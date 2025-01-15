@@ -1,5 +1,5 @@
 import express, { json } from 'express';
-import { postUrl, retrieveUrl, updateUrl, deleteUrl } from "./controller.js";
+import { postUrl, retrieveUrl, updateUrl, deleteUrl, increment, getUrlData } from "./controller.js";
 import Url from "./model.js";
 
 const app = express();
@@ -13,15 +13,14 @@ app.post('/shorten', async (req, res) => {
 
     // Implement Logic to Post URL to DB
     try {
-        const { id, url} = req.body;
+        const {url} = req.body;
 
         // Get Current DateTime obj
         const now = new Date();
         const createdAt = now.toISOString();
-        console.log(createdAt);
 
         // Create a new URL object
-        const newUrl = new Url(id, url, createdAt);
+        const newUrl = new Url(url, createdAt);
 
         // Call the postUrl function to save it in the database
         const result = await postUrl(newUrl);
@@ -44,7 +43,7 @@ app.get('/shorten/:shortCode', async (req, res) => {
 
         res.status(200).json({message: result});
     } catch {
-        res.status(400).json({message: "Error!"});
+        res.status(404).json({message: "Error!"});
     }
 });
 
@@ -74,12 +73,37 @@ app.delete('/shorten/:shortCode', async (req, res) => {
 
         res.status(200).json({message: `Url with shortcode: ${shortCode} was successfully deleted!`});
     } catch {
-        res.status(400).json({message: "Error!"});
+        res.status(404).json({message: "Error!"});
+    }
+})
+
+// Redirect to URL when Accessed and Increment Data Based on Usage
+app.get('/:shortCode', async (req, res) => {
+    try {
+        const shortCode = req.params.shortCode;
+        const result = await retrieveUrl(shortCode);
+
+        // Increment Usage
+        await increment(shortCode);
+
+        res.redirect(result.url);
+        res.status(200);
+    } catch {
+        res.status(404).json({message: "Error!"});
     }
 })
 
 
 // GET URL DATA
+app.get('/shorten/:shortCode/stats', async (req, res) => {
+    try {
+        const shortCode = req.params.shortCode;
+        const result = await getUrlData(shortCode);
+        res.status(200).json({message: result});
+    } catch {
+        res.status(404).json({message: "Error!"});
+    }
+})
 
 
 

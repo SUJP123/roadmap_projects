@@ -27,12 +27,12 @@ async function inputData(db_name, collection_name, data) {
     }
 }
 
-async function retrieveFromDB(db_name, collection_name, query) {
+async function retrieveFromDB(db_name, collection_name, query, projections) {
     try {
         await client.connect();
         const db = client.db(db_name);
         const coll = db.collection(collection_name);
-        const res = await coll.findOne(query);
+        const res = await coll.findOne(query, projections);
         return res;
     } finally {
         await client.close();
@@ -70,5 +70,18 @@ async function deleteData(db_name, collection_name, shortCode) {
     }
 }
 
+async function incrementUsage(db_name, collection_name, shortCode) {
+    try {
+        await client.connect();
+        const db = client.db(db_name);
+        const coll = db.collection(collection_name);
 
-export {inputData, retrieveFromDB, updateData, deleteData};
+        const res = await coll.updateOne({"shortCode":shortCode}, {$inc: {"accessCount": 1}})
+        return res;
+    } finally {
+        await client.close();
+    }
+}
+
+
+export {inputData, retrieveFromDB, updateData, deleteData, incrementUsage};
