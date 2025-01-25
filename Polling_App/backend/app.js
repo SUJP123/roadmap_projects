@@ -3,8 +3,10 @@ import { WebSocketServer } from "ws";
 import { inputVotesFromUser, viewAllVotes, checkValidity } from "./controller.js";
 import { Poll } from "./model.js";
 import { v4 as uuidv4 } from "uuid";
+import cors from "cors";
 
 const app = express();
+app.use(cors());
 
 // Initialize Websocket Server
 const wss = new WebSocketServer({ port: 8080 });
@@ -13,19 +15,25 @@ const wss = new WebSocketServer({ port: 8080 });
 app.use(express.json());
 const PORT = 5050;
 
+app.get("/initial", async (req, res) => { 
+  const result = await viewAllVotes();
+  return result;
+});
+
 // Store Clients MetaData
 const clients = new Map();
 
-function sendClientsData() {
+async function sendClientsData() {
   // Fetch Total Counts
-  const outbound = JSON.stringify(viewAllVotes());
+  console.log("Sending Data to Clients - Start");
+  const outbound = JSON.stringify(await viewAllVotes());
+  console.log("Sending Data to Clients", outbound);
 
   [...clients.keys()].forEach((client) => {
     client.send(outbound);
   });
 
 }
-
 
 // Connect and Create a new client for each new connection
 wss.on('connection', (ws) => { 
@@ -34,13 +42,14 @@ wss.on('connection', (ws) => {
     console.log(`New Client Connected with id ${id}`);
 
     // Listen for incoming messages (messages => { vote: string })
-    ws.on('message', (rawMessage) => { 
+    ws.on('message', async (rawMessage) => { 
       const message = JSON.parse(rawMessage.toString());
       console.log("Received Message", message);
       const { id } = clients.get(ws);
       
-      console.log(checkValidity(id))
-      if (checkValidity(id)) {
+      // Check if user already voted, valid if they haven't
+      const valid = await checkValidity(id); 
+      if (valid) {
         const data = new Poll(message.vote, id);
         inputVotesFromUser(data);
         console.log(`Received vote ${message.vote} from user ${id}`);
